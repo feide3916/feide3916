@@ -1,0 +1,5 @@
+export const intakeFields=[['name','姓名',true],['birthDate','出生日期',false],['sex','性别',false],['sport','运动项目',false],['years','训练年限',false],['weekly','每周训练情况',false],['goal','希望改善的方面',false],['injury','目前伤病 / 不舒服的位置（选填）',false],['contact','家长 / 联系方式（选填）',false]] as const;
+export const checkinFields=[['name','姓名',true],['sleep','昨晚睡眠情况',false],['fatigue','今天的疲劳程度',false],['soreness','肌肉酸痛情况',false],['pain','是否有疼痛 / 不舒服（选填）',false],['feedback','想告诉教练的事',false]] as const;
+export function fieldsFor(kind:string){return kind==='checkin'?checkinFields:intakeFields;}
+export function validAnswers(kind:string,input:unknown){if(!input||typeof input!=='object'||Array.isArray(input))return null;const answers:Record<string,string>={};for(const [key,,required] of fieldsFor(kind)){const v=(input as any)[key];if(v!==undefined&&typeof v!=='string')return null;answers[key]=(v||'').trim();if(answers[key].length>1200||(required&&!answers[key]))return null;}return answers;}
+export async function tokenHash(token:string){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');}
