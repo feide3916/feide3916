@@ -40,6 +40,7 @@ assert.equal(nativeBad.status,303);assert.ok(nativeBad.headers.get('Location').i
 const nativeGood=await api.POST(form({action:'login',email:env.COACH_OWNER_EMAIL,password}));assert.equal(nativeGood.status,303);assert.equal(nativeGood.headers.get('Location'),env.PUBLIC_ORIGIN+'/');assert.equal((await identity.getChatGPTUser()).userId,'owner');
 const nativeOrigin=await api.POST(form({action:'login',email:env.COACH_OWNER_EMAIL,password},'https://evil.test'));assert.equal(nativeOrigin.status,303);assert.ok(nativeOrigin.headers.get('Location').includes('/login?error='));
 const html=fs.readFileSync('app/auth-form.tsx','utf8');assert.ok(html.includes('action="/api/auth" method="post"'));for(const name of ['action','email','password','current'])assert.ok(html.includes('name="'+name+'"'));assert.ok(html.includes('new FormData(e.currentTarget)'));
+const basicLogin=await api.POST(form({action:'login',email:env.COACH_OWNER_EMAIL,password,basic:'1'}));assert.equal(basicLogin.status,303);assert.equal(basicLogin.headers.get('Location'),env.PUBLIC_ORIGIN+'/basic');
 const initial='test-only-coach-initial';
 assert.equal((await admin.POST(req({email:'coach@example.test',name:'测试教练',password:initial,role:'viewer'}))).status,200);
 await post({action:'logout'});
