@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+let email='owner@example.test',shared=[],queries=0;
+const module={exports:{}};
+const code=ts.transpileModule(fs.readFileSync('app/page.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+const req=id=>id==='./studio'?{default:()=>null}:id==='./coach-access'?{getCoachUser:async()=>({userId:'coach',email})}:id==='./chatgpt-auth'?{requireChatGPTUser:async()=>({})}:id==='./runtime'?{db:{prepare:()=>({bind:()=>({all:async()=>{queries++;return {results:shared}}})})}}:id==='next/navigation'?{redirect:url=>{throw {redirect:url}}}:id==='react/jsx-runtime'?{jsx:()=>({})}:null;
+vm.runInNewContext(`(function(require,module,exports){${code}\n})`,{process:{env:{COACH_OWNER_EMAIL:'owner@example.test'}},encodeURIComponent})(req,module,module.exports);
+const home=module.exports.default;
+await home({searchParams:Promise.resolve({})});assert.equal(queries,0);
+email='coach@example.test';shared=[{owner:'owner workspace'}];
+await assert.rejects(home({searchParams:Promise.resolve({})}),e=>e.redirect==='/?workspace=owner%20workspace');
+queries=0;await home({searchParams:Promise.resolve({workspace:'coach'})});assert.equal(queries,0);
+shared=[];await home({searchParams:Promise.resolve({})});
+shared=[{owner:'first'},{owner:'second'}];await home({searchParams:Promise.resolve({})});
+console.log('Home entry checks passed: owner stays personal, one approved shared workspace opens directly, explicit personal entry works, no access and multiple choices never auto-select. Identity and database mocked.');
