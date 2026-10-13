@@ -80,7 +80,7 @@ const basicAPI=load('app/api/basic/route.ts');
 user={userId:'owner',email:'owner@example.test',displayName:'教练1'};
 const basicForm=(fields,origin='https://test.local')=>new Request('https://test.local/api/basic',{method:'POST',headers:{origin,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fields)});
 const createBasic={base:'null',id:'native-basic-plan',athlete:'a',date:'2026-10-14',title:'简洁版测试',note:'',addExercise:'深蹲',addGroup:'B',action:'save'};
-assert.equal((await basicAPI.POST(basicForm(createBasic))).status,303);
+const createdBasic=await basicAPI.POST(basicForm(createBasic));assert.equal(createdBasic.status,303);assert.ok(createdBasic.headers.get('Location').startsWith('/basic?'));assert.ok(!createdBasic.headers.get('Location').includes('0.0.0.0'));
 let basicPlan=(await get())[1].data.sessions.find(s=>s.id==='native-basic-plan');assert.equal(basicPlan.items[0].group,'B');
 const editBasic={base:JSON.stringify(basicPlan),id:basicPlan.id,title:'简洁版测试',note:'', 'exercise.0':'深蹲','group.0':'A','note.0':'动作提示','reps.0.0':'8','load.0.0':'70','actualReps.0.0':'7','actualLoad.0.0':'67.5','actualNote.0.0':'实际记录',action:'complete'};
 assert.equal((await basicAPI.POST(basicForm(editBasic))).status,303);
