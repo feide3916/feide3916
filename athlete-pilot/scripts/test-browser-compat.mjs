@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {webcrypto} from 'node:crypto';
+import ts from 'typescript';
+const code=ts.transpileModule(fs.readFileSync('app/browser-compat.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+const context=vm.createContext({exports:{},crypto:{getRandomValues:array=>webcrypto.getRandomValues(array)}});
+vm.runInContext('structuredClone=undefined;Object.hasOwn=undefined;Array.prototype.at=undefined;',context);
+vm.runInContext(code,context);context.exports.ensureBrowserCompat();
+const result=vm.runInContext(`(()=>{const plan={items:[{load:'57.5',note:'中文',sets:[1,2]}]};const copy=structuredClone(plan);copy.items[0].load='99';return {original:plan.items[0].load,copy:copy.items[0].load,ids:Array.from({length:50},()=>crypto.randomUUID()),own:Object.hasOwn({x:1},'x'),inherited:Object.hasOwn({},'toString'),last:[1,2,3].at(-1),out:[1].at(-2),fraction:[1,2,3].at(-1.9)};})()`,context);
+assert.equal(result.original,'57.5');assert.equal(result.copy,'99');assert.equal(new Set(result.ids).size,50);for(const id of result.ids)assert.match(id,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+assert.equal(result.own,true);assert.equal(result.inherited,false);assert.equal(result.last,3);assert.equal(result.out,undefined);assert.equal(result.fraction,3);
+context.exports.ensureBrowserCompat();
+console.log('Legacy browser checks passed: secure UUIDs, independent JSON clones, own-property checks and negative array indexes, repeat initialization.');

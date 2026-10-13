@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><script dangerouslySetInnerHTML={{__html:"setTimeout(function(){var box=document.querySelector('[data-workspace-loading] [data-loading-help]');if(box)box.hidden=false;},20000);"}}/>{children}</body>
     </html>
   );
 }
