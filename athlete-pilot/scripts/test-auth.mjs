@@ -15,7 +15,7 @@ const statement=(sql,args=[])=>({bind:(...a)=>statement(sql,a),first:async()=>sq
 const db={prepare:statement,batch:async ss=>{sqlite.exec('BEGIN');try{const out=[];for(const s of ss)out.push(await s.run());sqlite.exec('COMMIT');return out;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};
 const env={PUBLIC_ORIGIN:'https://test.local',OWNER_SETUP_TOKEN:'test-only-bootstrap',COACH_OWNER_EMAIL:'owner@example.test',OWNER_WORKSPACE_KEY:'owner',NODE_ENV:'production'};
 const cache=new Map();function load(file){file=path.resolve(file);if(cache.has(file))return cache.get(file);const module={exports:{}};const req=id=>id.endsWith('runtime')?{db,env:{DB:db,COACH_OWNER_EMAIL:env.COACH_OWNER_EMAIL}}:id==='next/headers'?{cookies}:id==='next/navigation'?{redirect:()=>{throw Error('redirect')}}:id.startsWith('.')?load(path.resolve(path.dirname(file),id+'.ts')):nativeRequire(id);const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(`(function(require,module,exports){${code}\n})`,{Response,Request,URL,URLSearchParams,console,Buffer,Date,crypto:webcrypto,process:{env}})(req,module,module.exports);cache.set(file,module.exports);return module.exports;}
-const api=load('app/api/auth/route.ts'),identity=load('app/chatgpt-auth.ts'),admin=load('app/api/admin/accounts/route.ts');
+const api=load('app/api/auth/route.ts'),identity=load('app/chatgpt-auth.ts'),access=load('app/coach-access.ts'),admin=load('app/api/admin/accounts/route.ts');
 const req=(body,origin=env.PUBLIC_ORIGIN)=>new Request(env.PUBLIC_ORIGIN+'/api/auth',{method:'POST',headers:{origin,'Content-Type':'application/json'},body:JSON.stringify(body)});
 const post=b=>api.POST(req(b));const password='test-only-owner-password';
 assert.equal((await api.POST(req({action:'setup',token:env.OWNER_SETUP_TOKEN,password},'https://evil.test'))).status,403);
@@ -44,11 +44,17 @@ const basicLogin=await api.POST(form({action:'login',email:env.COACH_OWNER_EMAIL
 const initial='test-only-coach-initial';
 assert.equal((await admin.POST(req({email:'coach@example.test',name:'测试教练',password:initial,role:'viewer'}))).status,200);
 await post({action:'logout'});
-assert.equal((await post({action:'login',email:'coach@example.test',password:initial})).status,200);
-assert.equal((await identity.getChatGPTUser()).mustChange,true);assert.deepEqual(await (await api.GET()).json(),{authenticated:true,mustChange:true});
+const coachLogin=await post({action:'login',email:'coach@example.test',password:initial});assert.equal(coachLogin.status,200);assert.equal((await coachLogin.json()).redirect,'/coach');
+assert.equal((await identity.getChatGPTUser()).mustChange,false);assert.deepEqual(await (await api.GET()).json(),{authenticated:true,mustChange:false});
+// Legacy accounts with the old flag also enter normally; no password reset is needed.
+sqlite.prepare('UPDATE auth_users SET must_change=1 WHERE email=?').run('coach@example.test');
+assert.equal((await access.getCoachUser()).email,'coach@example.test');
+assert.equal((await identity.requireChatGPTUser('/coach')).email,'coach@example.test');
+const coachNative=await api.POST(form({action:'login',email:'coach@example.test',password:initial}));assert.equal(coachNative.headers.get('Location'),env.PUBLIC_ORIGIN+'/coach');
+assert.deepEqual(await (await api.GET()).json(),{authenticated:true,mustChange:false});
 assert.equal((await admin.POST(req({email:'outsider@example.test',password:initial,role:'editor'}))).status,403);
 const stale=jar.get('athlete_session');
-const nativePassword=await api.POST(form({action:'password',current:initial,password:'test-only-new-password'}));assert.equal(nativePassword.status,303);assert.equal(nativePassword.headers.get('Location'),env.PUBLIC_ORIGIN+'/');
+const nativePassword=await api.POST(form({action:'password',current:initial,password:'test-only-new-password'}));assert.equal(nativePassword.status,303);assert.equal(nativePassword.headers.get('Location'),env.PUBLIC_ORIGIN+'/account?updated=1');
 assert.equal((await identity.getChatGPTUser()).mustChange,false);
 const fresh=jar.get('athlete_session');jar.set('athlete_session',stale);assert.equal(await identity.getChatGPTUser(),null);jar.set('athlete_session',fresh);
 await post({action:'logout'});await post({action:'login',email:env.COACH_OWNER_EMAIL,password});
@@ -56,4 +62,4 @@ assert.equal((await admin.POST(req({action:'disable',email:'coach@example.test'}
 assert.equal((await post({action:'login',email:'coach@example.test',password:'test-only-new-password'})).status,401);
 for(let i=0;i<20;i++)assert.equal((await post({action:'login',email:'missing@example.test',password})).status,401);
 assert.equal((await post({action:'login',email:'missing@example.test',password})).status,429);
-console.log('Auth tests passed: setup once, origin checks, hashed passwords/tokens, secure cookies, revoked sessions, forced password change, admin-only accounts, disabled account, login rate limit. Real crypto and SQLite; cookies mocked.');
+console.log('Auth tests passed: setup once, origin checks, hashed passwords/tokens, secure cookies, revoked sessions, optional password change, legacy first-login flag allowed, coach entry, admin-only accounts, disabled account, login rate limit. Real crypto and SQLite; cookies mocked.');

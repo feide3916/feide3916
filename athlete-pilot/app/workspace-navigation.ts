@@ -1,0 +1,1 @@
+export function workspaceNavigation(isAdmin:boolean){return {main:isAdmin?['计划编排','运动员档案','教案库','体测报告','问卷与跟踪','团队权限']:['计划编排','运动员档案','教案库'],tools:isAdmin?['动作库','数据与追踪','运动员报告']:['动作库','数据与追踪','体测报告','运动员报告','问卷与跟踪']};}

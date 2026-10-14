@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {webcrypto} from 'node:crypto';
+const req=createRequire(import.meta.url),React=req('react'),{renderToStaticMarkup}=req('react-dom/server');
+const code=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+const nav={exports:{}};vm.runInNewContext(`(function(module,exports){${code('app/workspace-navigation.ts')}})`)(nav,nav.exports);
+const data={athletes:[{id:'demo-1',name:'示例运动员',sport:'篮球'}],sessions:[],exercises:[],tests:[],templates:[]};
+function render(isAdmin){let index=0;const hooks={useState:v=>[index++===0?data:v,()=>{}],useRef:v=>({current:v}),useEffect:()=>{}};
+ const module={exports:{}};
+ const resolver=id=>id==='react'?hooks:id==='react/jsx-runtime'?req(id):id==='./workspace-navigation'?nav.exports:id==='./plan-templates'?{referenceTemplates:[]}:id==='./browser-compat'?{ensureBrowserCompat:()=>{}}:new Proxy({__esModule:true,default:()=>null},{get:(o,k)=>k in o?o[k]:()=>null});
+ vm.runInNewContext(`(function(require,module,exports){${code('app/studio.tsx')}})`,{crypto:webcrypto,Intl,Date,URLSearchParams})(resolver,module,module.exports);
+ return renderToStaticMarkup(module.exports.default({account:{isAdmin,name:'测试教练',email:'qa@example.test'}}));
+}
+const coach=render(false),owner=render(true);
+for(const text of ['计划编排','运动员档案','教案库','我的账号 / 修改密码'])assert.ok(coach.includes(text),text);
+for(const text of ['团队权限','训练 / 体测 JSON 备份','导出 Excel / 双语表头','数据库试用至'])assert.ok(!coach.includes(text),text);
+for(const text of ['团队权限','训练 / 体测 JSON 备份','导出 Excel / 双语表头','数据库试用至'])assert.ok(owner.includes(text),text);
+assert.ok(!coach.includes('<button class="active">团队权限'));
+console.log('Coach interface checks passed: rendered coach sidebar has core workflows and account access; management and bulk backup are owner-only. Client state and child panels mocked; real Studio JSX rendered.');
