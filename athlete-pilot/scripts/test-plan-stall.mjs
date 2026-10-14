@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+function module(file,extra={}){const context=vm.createContext({exports:{},AbortController,setTimeout,clearTimeout,...extra});vm.runInContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,context);return context.exports;}
+const {emptyDraftTemplateDetails}=module('app/template-draft.ts');
+const t={title:'周期一',sessionNote:'教案提示',stages:{A:'热身',B:'力量'}};
+const draft={title:'今天的训练',note:'腰部注意',stages:{A:'我的主题'}};
+const result=emptyDraftTemplateDetails(t,draft);
+assert.equal(result.title,'今天的训练');assert.equal(result.note,'教案提示\n腰部注意');assert.equal(result.stages.A,'我的主题');assert.equal(result.stages.B,'力量');
+assert.equal(emptyDraftTemplateDetails(t,{title:'新课程',note:''}).title,t.title);
+assert.equal(emptyDraftTemplateDetails(t,null).note,'教案提示');assert.equal(draft.note,'腰部注意');
+const timeoutText=/超时.*草稿仍保留/;
+let aborted=false;
+let api=module('app/request-json.ts',{fetch:async(_url,options)=>{options.signal.addEventListener('abort',()=>{aborted=true;});return new Promise(()=>{});}});
+await assert.rejects(api.requestJSON('/api/state',{},15),timeoutText);assert.equal(aborted,true);
+api=module('app/request-json.ts',{fetch:async()=>({json:()=>new Promise(()=>{})})});
+await assert.rejects(api.requestJSON('/api/state',{},15),timeoutText);
+api=module('app/request-json.ts',{fetch:async()=>({json:async()=>{throw Error('HTML instead');}})});
+await assert.rejects(api.requestJSON('/api/state',{},30),/有效数据.*草稿仍保留/);
+api=module('app/request-json.ts',{fetch:async()=>({ok:true,json:async()=>({revision:4})})});
+assert.equal((await api.requestJSON('/api/state',{},30)).value.revision,4);
+console.log('Plan stall regression checks passed: empty draft metadata retained; stalled headers/body time out; invalid JSON preserves draft; successful requests work.');
