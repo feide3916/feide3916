@@ -5,13 +5,14 @@ import {exerciseIndex,exerciseMatches,sortedExercises} from './exercise-search';
 type Props={options:string[];label:string;value?:string;placeholder?:string;onSelect:(value:string)=>void;onCreate?:(value:string)=>Promise<boolean>;disabled?:boolean};
 export default function ExercisePicker({options,label,value='',placeholder='输入名称 / 拼音首字母…',onSelect,onCreate,disabled=false}:Props){
  const [text,setText]=useState(value),[open,setOpen]=useState(false),[active,setActive]=useState(0),[composing,setComposing]=useState(false),[creating,setCreating]=useState(false);
+ const selectLatest=useRef(onSelect);selectLatest.current=onSelect;
  const root=useRef<HTMLDivElement>(null),input=useRef<HTMLInputElement>(null),id=useId();
  useEffect(()=>{setText(value);},[value]);
  const indexed=useMemo(()=>sortedExercises(options).map(exerciseIndex),[options]);
  const results=indexed.filter(e=>exerciseMatches(e.name,text));
  const canCreate=!!onCreate&&!!text.trim()&&!options.some(name=>name.trim().toLocaleLowerCase()===text.trim().toLocaleLowerCase());
  async function create(){const name=text.trim();if(!name||!onCreate||creating)return;setCreating(true);try{if(await onCreate(name))choose(name);}finally{setCreating(false);}}
- function choose(name:string){onSelect(name);setText(value?name:'');setOpen(false);setActive(0);}
+ function choose(name:string){selectLatest.current(name);setText(value?name:'');setOpen(false);setActive(0);}
  useEffect(()=>{if(open)root.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({block:'nearest'});},[active,open]);
  return <div ref={root} className={`exercise-picker ${open?'picker-open':''}`} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget)){setOpen(false);setText(value);}}}>
   <Search size={15} className="picker-searchicon"/>

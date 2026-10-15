@@ -31,3 +31,7 @@ const second=context.commit(undefined,true);assert.equal(calls[1][0].sessions[0]
 live.current.draft={...changed,note:'失败时保留'};live.current.dirty=true;const failed=context.commit(undefined,true);resolveWrite(false);assert.equal(await failed,false);assert.equal(live.current.dirty,true);assert.equal(failedAuto.current,storage.planFingerprint(live.current.draft));assert.equal(backups.at(-1).confirmed,false);
 const before=calls.length;navigator.onLine=false;live.current.draft={...changed,note:'离线修改'};assert.equal(await context.commit(undefined,true),false);assert.equal(calls.length,before);assert.equal(live.current.dirty,true);assert.ok(errors.at(-1).includes('离线'));
 console.log('Autosave regression passed: snapshot save, edits during a pending request remain dirty, next save confirms only latest draft, failed/offline writes preserve input, recoverable drafts and malformed backups handled. Actual commitPlan function tested with mocked transport.');
+// Removing the final action of an existing course must persist, rather than reappear after refresh.
+navigator.onLine=true;live.current.data.sessions=[structuredClone(base)];live.current.draft={...base,items:[],note:'',status:'已完成'};live.current.dirty=true;
+const cleared=context.commit(undefined,true);assert.equal(calls.at(-1)[0].sessions[0].items.length,0);assert.equal(calls.at(-1)[0].sessions[0].status,'计划中');resolveWrite(true);assert.equal(await cleared,true);assert.equal(live.current.dirty,false);
+console.log('Existing course final-action removal persists as a non-completed course.');
