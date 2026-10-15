@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./autosave.css";
 
 export const metadata: Metadata = {
   title: "运动员训练工作台",

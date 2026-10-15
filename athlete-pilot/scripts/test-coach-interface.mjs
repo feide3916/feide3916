@@ -7,10 +7,11 @@ import {webcrypto} from 'node:crypto';
 const req=createRequire(import.meta.url),React=req('react'),{renderToStaticMarkup}=req('react-dom/server');
 const code=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 const nav={exports:{}};vm.runInNewContext(`(function(module,exports){${code('app/workspace-navigation.ts')}})`)(nav,nav.exports);
+const planStorage={exports:{}};vm.runInNewContext(`(function(module,exports){${code('app/plan-storage.ts')}})`,{structuredClone,Date,JSON})(planStorage,planStorage.exports);
 const data={athletes:[{id:'demo-1',name:'示例运动员',sport:'篮球'}],sessions:[],exercises:[],tests:[],templates:[]};
 function render(isAdmin){let index=0;const hooks={useState:v=>[index++===0?data:v,()=>{}],useRef:v=>({current:v}),useEffect:()=>{}};
  const module={exports:{}};
- const resolver=id=>id==='react'?hooks:id==='react/jsx-runtime'?req(id):id==='./workspace-navigation'?nav.exports:id==='./plan-templates'?{referenceTemplates:[]}:id==='./browser-compat'?{ensureBrowserCompat:()=>{}}:new Proxy({__esModule:true,default:()=>null},{get:(o,k)=>k in o?o[k]:()=>null});
+ const resolver=id=>id==='react'?hooks:id==='react/jsx-runtime'?req(id):id==='./workspace-navigation'?nav.exports:id==='./plan-storage'?planStorage.exports:id==='./plan-templates'?{referenceTemplates:[]}:id==='./browser-compat'?{ensureBrowserCompat:()=>{}}:new Proxy({__esModule:true,default:()=>null},{get:(o,k)=>k in o?o[k]:()=>null});
  vm.runInNewContext(`(function(require,module,exports){${code('app/studio.tsx')}})`,{crypto:webcrypto,Intl,Date,URLSearchParams})(resolver,module,module.exports);
  return renderToStaticMarkup(module.exports.default({account:{isAdmin,name:'测试教练',email:'qa@example.test'}}));
 }
