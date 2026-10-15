@@ -41,3 +41,9 @@ vm.runInNewContext(`(function(require,module,exports){${compile(fs.readFileSync(
 const readonlyHtml=renderToStaticMarkup(React.createElement(tm.exports.default,{templates:[{id:'qa',title:'test plan',courseType:'private',items:p.items}],busy:false,canEdit:false,target:'QA',onApply:()=>{},onEdit:()=>{},onReturn:()=>{}}));
 assert.match(readonlyHtml,/<button disabled="" class="primary">套用教案/);assert.match(readonlyHtml,/<button disabled="">修改名称/);assert.ok(readonlyHtml.includes('查看动作'));
 console.log('Read-only template library renders disabled edit/apply controls and available preview.');
+const cm={exports:{}};
+const coachReq=id=>id==='./training-groups'?{compareGroups:()=>0,groupColor:()=> 'blue'}:templateReq(id);
+vm.runInNewContext(`(function(require,module,exports){${compile(fs.readFileSync('app/coach-lesson.tsx','utf8'))}})`)(coachReq,cm,cm.exports);
+const coachHtml=renderToStaticMarkup(React.createElement(cm.exports.default,{session:p,athlete:'QA',busy:false,dirty:false,message:'',onBack:()=>{},onChange:()=>{},onSave:()=>{},onFinish:()=>{}}));
+assert.match(coachHtml,/<input aria-label="squat第1组实际重量"[^>]*type="number"[^>]*min="0"[^>]*step="any"/);
+console.log('Classroom actual weight uses nonnegative decimal numeric input.');
