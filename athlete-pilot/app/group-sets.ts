@@ -9,5 +9,5 @@ export function resizeGroupSets(items:PlanItem[],group:string,count:number,empty
  return items.map(i=>i.group!==group?i:{...i,sets:Array.from({length:count},(_,n)=>i.sets[n]||{...(i.sets.at(-1)||emptySet()),actualReps:'',actualLoad:'',actualSpeed:'',actualPower:'',actualNote:''})});
 }
 export function removedSetHasData(items:PlanItem[],group:string,count:number){
- return items.some(i=>i.group===group&&i.sets.slice(count).some(row=>Object.values(row).some(value=>!!String(value||'').trim())));
+ return items.some(i=>i.group===group&&i.sets.slice(count).some(row=>Object.entries(row).some(([key,value])=>key==='reps'?!!String(value||'').trim()&&String(value).trim()!=='5':!!String(value||'').trim())));
 }

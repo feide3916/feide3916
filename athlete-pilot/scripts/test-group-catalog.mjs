@@ -25,5 +25,6 @@ assert.equal(grown[2].sets.length,1);
 assert.equal(grown[0].sets[0].load,'60');
 assert.equal(grown[0].sets[2].load,'65');
 assert.ok(groups.removedSetHasData(grown,'A',2));
+assert.equal(groups.removedSetHasData([{...a,sets:[row(),row(),row()]}],'A',2),false);
 assert.equal(groups.resizeGroupSets(grown,'A',2,()=>row())[0].sets[1].load,'65');
 console.log('Bilingual aliases retain old training history; group counts keep earlier weights and protect rows before shrinking.');
