@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync('app/basic-plan.ts','utf8');
+const context=vm.createContext({exports:{},crypto:{randomUUID:()=> 'new-action'},Number,Object,Array,Set,URLSearchParams});
+vm.runInContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context);
+const edit=context.exports.editBasicPlan;
+const empty={id:'plan',title:'训练计划',note:'',status:'计划中',groupSets:{A:4},items:[{id:'free',group:'A',exercise:'动作说明',note:'',sets:[]}]};
+const fields=new URLSearchParams({title:'训练计划',note:'', 'exercise.0':'动作说明','group.0':'A','note.0':'', 'setCount.0':'0',addExercise:'深蹲',addGroup:'A',action:'save'});
+const saved=edit(empty,fields);
+assert.equal(saved.items[0].sets.length,0);
+assert.equal(saved.items[1].sets.length,4);
+assert.equal(saved.items[1].id,'new-action');
+console.log('Basic workspace preserves zero-set template actions and inherits the group set count for new actions.');
