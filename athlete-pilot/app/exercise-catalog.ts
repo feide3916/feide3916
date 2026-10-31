@@ -22,5 +22,5 @@ const aliases=new Map<string,string>();
 for(const [zh,en,extra=[]] of catalog){const name=`${zh}（${en}）`;for(const alias of [zh,en,...extra,name])aliases.set(alias.trim().toLocaleLowerCase(),name);}
 export function canonicalExercise(name:string){return aliases.get(name.trim().toLocaleLowerCase())||name.trim();}
 export function sameExercise(a:string,b:string){return canonicalExercise(a)===canonicalExercise(b);}
-export function isBilingualExercise(name:string){return /^[\u3400-\u9fff][^（）]*（[A-Za-z][^（）]*）$/.test(name.trim());}
+export function isBilingualExercise(name:string){return /^(?=[^（）]*[\u3400-\u9fff])[^（）]+（[A-Za-z][^（）]*）$/.test(name.trim());}
 export function libraryExercises(existing:string[]){return [...new Set([...strengthExercises,...existing.map(canonicalExercise)])].filter(isBilingualExercise);}

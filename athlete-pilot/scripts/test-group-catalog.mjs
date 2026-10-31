@@ -14,6 +14,7 @@ assert.ok(!names.includes('杠铃深蹲'));
 assert.ok(!names.includes('自定义器械动作'));
 assert.ok(names.every(catalog.isBilingualExercise));
 assert.ok(names.includes('哥本哈根侧支撑（Copenhagen Plank）'));
+assert.ok(names.includes('A跳步（A-Skip）'));
 assert.equal(catalog.canonicalExercise('Copenhagen'),'哥本哈根侧支撑（Copenhagen Plank）');
 assert.equal(catalog.canonicalExercise('A skip'),'A跳步（A-Skip）');
 assert.ok(names.length>=50);
